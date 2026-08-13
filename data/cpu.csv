@@ -1,0 +1,4 @@
+name,brand,price,socket,performance_score,power
+Ryzen 5 7500F,AMD,180000,AM5,82,65
+Core i5-14400F,Intel,230000,LGA1700,85,148
+Ryzen 5 7600,AMD,240000,AM5,86,65
