@@ -1,6 +1,20 @@
 from data_loader import (load_cpu_data, load_gpu_data, load_motherboard_data, load_ram_data, load_ssd_data, load_psu_data, load_case_data)
+from pc_build_recommender import PCBuildRecommender
 
 ##함수
+def get_budget_mode():
+    while True:
+        print("\n========== 예산 설정 방식 ==========")
+        print("1. 전체 예산으로 자동 설정")
+        print("2. 부품별 예산 직접 설정")
+
+        mode = input("선택하세요 (1 또는 2) : ")
+
+        if mode == "1" or mode == "2":
+            return mode
+
+        print("1 또는 2를 입력해주세요.")
+
 def get_budget_input(message):
     while True:
         try:
@@ -15,30 +29,205 @@ def get_budget_input(message):
         except ValueError:
             print("숫자만 입력해주세요.")
 
-def recommend_performance_part(part_list, budget):
-    available_parts = []
+def get_usage_type():
+    while True:
+        print("\n========== 사용 목적 ==========")
+        print("1. 게임")
+        print("2. 사무 / 일반 사용")
+        print("3. 개발 / 프로그래밍")
+        print("4. 영상 편집")
 
-    for part in part_list:
-        if part.price <= budget:
-            part.value_score = (
-                part.performance_score
-                / part.price
-                * 10000
-            )
+        usage_type = input("사용 목적을 선택하세요 (1~4) : ")
 
-            available_parts.append(part)
+        if usage_type in ["1", "2", "3", "4"]:
+            return usage_type
 
-    if len(available_parts) == 0:
-        return None
+        print("1부터 4까지의 숫자 중 하나를 입력해주세요.")
 
-    recommended_part = max(
-        available_parts,
-        key=lambda part: part.value_score
+#사용목적 알고리즘
+def allocate_budget(total_budget, usage_type):
+    if usage_type == "1":
+        # 게임
+        budget_ratio = {
+            "cpu": 0.20,
+            "gpu": 0.35,
+            "motherboard": 0.12,
+            "ram": 0.08,
+            "ssd": 0.08,
+            "psu": 0.09,
+            "case": 0.08
+        }
+
+    elif usage_type == "2":
+        # 사무 / 일반 사용
+        budget_ratio = {
+            "cpu": 0.25,
+            "gpu": 0.15,
+            "motherboard": 0.15,
+            "ram": 0.12,
+            "ssd": 0.13,
+            "psu": 0.10,
+            "case": 0.10
+        }
+
+    elif usage_type == "3":
+        # 개발 / 프로그래밍
+        budget_ratio = {
+            "cpu": 0.27,
+            "gpu": 0.18,
+            "motherboard": 0.13,
+            "ram": 0.15,
+            "ssd": 0.12,
+            "psu": 0.08,
+            "case": 0.07
+        }
+
+    else:
+        # 영상 편집
+        budget_ratio = {
+            "cpu": 0.25,
+            "gpu": 0.28,
+            "motherboard": 0.11,
+            "ram": 0.13,
+            "ssd": 0.10,
+            "psu": 0.08,
+            "case": 0.05
+        }
+
+    budget_allocation = {
+        "cpu": int(total_budget * budget_ratio["cpu"]),
+        "gpu": int(total_budget * budget_ratio["gpu"]),
+        "motherboard": int(
+            total_budget * budget_ratio["motherboard"]
+        ),
+        "ram": int(total_budget * budget_ratio["ram"]),
+        "ssd": int(total_budget * budget_ratio["ssd"]),
+        "psu": int(total_budget * budget_ratio["psu"]),
+        "case": int(total_budget * budget_ratio["case"])
+    }
+
+    return budget_allocation
+
+def get_custom_budget():
+    budget_allocation = {
+        "cpu": get_budget_input("CPU 예산을 입력하세요 : "),
+        "gpu": get_budget_input("GPU 예산을 입력하세요 : "),
+        "motherboard": get_budget_input("메인보드 예산을 입력하세요 : "),
+        "ram": get_budget_input("RAM 예산을 입력하세요 : "),
+        "ssd": get_budget_input("SSD 예산을 입력하세요 : "),
+        "psu": get_budget_input("PSU 예산을 입력하세요 : "),
+        "case": get_budget_input("Case 예산을 입력하세요 : ")
+    }
+
+    return budget_allocation
+
+def print_final_build(
+    recommended_cpu,
+    recommended_gpu,
+    recommended_motherboard,
+    recommended_ram,
+    recommended_ssd,
+    recommended_psu,
+    recommended_case,
+    total_price
+):
+    print("\n========== 최종 추천 PC 견적 ==========")
+
+    if recommended_cpu is not None:
+        print("CPU          :", recommended_cpu.name)
+
+    if recommended_gpu is not None:
+        print("GPU          :", recommended_gpu.name)
+
+    if recommended_motherboard is not None:
+        print("Motherboard  :", recommended_motherboard.name)
+
+    if recommended_ram is not None:
+        print("RAM          :", recommended_ram.name)
+
+    if recommended_ssd is not None:
+        print("SSD          :", recommended_ssd.name)
+
+    if recommended_psu is not None:
+        print("PSU          :", recommended_psu.name)
+
+    if recommended_case is not None:
+        print("Case         :", recommended_case.name)
+
+    print()
+    print("총 가격      :", format(total_price, ","), "원")
+    print("=======================================")
+
+def print_missing_parts(
+    recommended_cpu,
+    recommended_gpu,
+    recommended_motherboard,
+    recommended_ram,
+    recommended_ssd,
+    recommended_psu,
+    recommended_case
+):
+    print("\n추천되지 않은 부품:")
+
+    if recommended_cpu is None:
+        print("- CPU")
+
+    if recommended_gpu is None:
+        print("- GPU")
+
+    if recommended_motherboard is None:
+        print("- Motherboard")
+
+    if recommended_ram is None:
+        print("- RAM")
+
+    if recommended_ssd is None:
+        print("- SSD")
+
+    if recommended_psu is None:
+        print("- PSU")
+
+    if recommended_case is None:
+        print("- Case")
+
+def print_budget_allocation(budget_allocation):
+    print("\n========== 자동 배정 예산 ==========")
+    print(
+        "CPU          :",
+        format(budget_allocation["cpu"], ","),
+        "원"
     )
-
-    return recommended_part
-
-
+    print(
+        "GPU          :",
+        format(budget_allocation["gpu"], ","),
+        "원"
+    )
+    print(
+        "Motherboard  :",
+        format(budget_allocation["motherboard"], ","),
+        "원"
+    )
+    print(
+        "RAM          :",
+        format(budget_allocation["ram"], ","),
+        "원"
+    )
+    print(
+        "SSD          :",
+        format(budget_allocation["ssd"], ","),
+        "원"
+    )
+    print(
+        "PSU          :",
+        format(budget_allocation["psu"], ","),
+        "원"
+    )
+    print(
+        "Case         :",
+        format(budget_allocation["case"], ","),
+        "원"
+    )
+    print("====================================")
 
 ##함수로 csv파일 불러오기
 cpu_list = load_cpu_data()
@@ -49,186 +238,87 @@ ssd_list = load_ssd_data()
 psu_list = load_psu_data()
 case_list = load_case_data()
 
+##빌드 생성
+recommender = PCBuildRecommender(
+    cpu_list,
+    gpu_list,
+    motherboard_list,
+    ram_list,
+    ssd_list,
+    psu_list,
+    case_list
+)
 
 ##기능 모음
-##CPU 추천 기능
-cpu_budget = get_budget_input("\nCPU 예산을 입력하세요 : ")
-recommended_cpu = recommend_performance_part(cpu_list, cpu_budget)
+budget_mode = get_budget_mode()
 
-if recommended_cpu is None:
-    print("예산 내에서 추천할 수 있는 CPU가 없습니다.")
-else:
-    print("\n========추천 CPU========")
-    print("제품명               :", recommended_cpu.name)
-    print("가격                 :", recommended_cpu.price, "원")
-    print("성능 점수            :", recommended_cpu.performance_score)
-    print("가격 대비 성능 점수  :", round(recommended_cpu.value_score, 2))
-
-##메인보드 추천 기능
-if recommended_cpu is not None:
-    motherboard_budget = get_budget_input("\n메인보드 예산을 입력하세요 : ")
-
-    compatible_motherboards = []
-
-    for motherboard in motherboard_list:
-        if (
-            motherboard.socket == recommended_cpu.socket
-            and motherboard.price <= motherboard_budget
-        ):
-            compatible_motherboards.append(motherboard)
-
-    if len(compatible_motherboards) == 0:
-        recommended_motherboard = None
-        print("추천 CPU와 호환되는 메인보드가 예산 내에 없습니다.")
-
-    else:
-        recommended_motherboard = min(
-            compatible_motherboards,
-            key=lambda motherboard: motherboard.price
-        )
-
-        print("\n========추천 메인보드========")
-        print("제품명       :", recommended_motherboard.name)
-        print("가격         :", recommended_motherboard.price, "원")
-        print("소켓         :", recommended_motherboard.socket)
-        print("메모리 규격  :", recommended_motherboard.memory_type)
-
-##RAM 추천 기능
-if recommended_motherboard is not None:
-    ram_budget = get_budget_input("\nRAM 예산을 입력하세요 : ")
-
-    compatible_rams = []
-
-    for ram in ram_list:
-        if (
-            ram.memory_type == recommended_motherboard.memory_type
-            and ram.price <= ram_budget
-        ):
-            compatible_rams.append(ram)
-
-    if len(compatible_rams) == 0:
-        recommended_ram = None
-        print("추천 메인보드와 호환되는 RAM이 예산 내에 없습니다.")
-
-    else:
-        recommended_ram = max(
-            compatible_rams,
-            key=lambda ram: ram.capacity
-        )
-
-        print("\n========추천 RAM========")
-        print("제품명       :", recommended_ram.name)
-        print("가격         :", recommended_ram.price, "원")
-        print("메모리 규격  :", recommended_ram.memory_type)
-        print("용량         :", recommended_ram.capacity, "GB")
-
-##SSD 추천 기능
-ssd_budget = get_budget_input("\nSSD 예산을 입력하세요 : ")
-available_ssds = []
-
-for ssd in ssd_list:
-    if ssd.price <= ssd_budget:
-        available_ssds.append(ssd)
-
-if len(available_ssds) == 0:
-    recommended_ssd = None
-    print("예산 내에서 추천할 수 있는 SSD가 없습니다.")
-
-else:
-    recommended_ssd = max(
-        available_ssds,
-        key=lambda ssd: (
-            ssd.capacity, -ssd.price
-        )
+if budget_mode == "1":
+    total_budget = get_budget_input(
+        "전체 PC 예산을 입력하세요 : "
     )
 
-    print("\n========추천 SSD========")
-    print("제품명       :", recommended_ssd.name)
-    print("가격         :", recommended_ssd.price, "원")
-    print("용량         :", recommended_ssd.capacity, "GB")
-    print("연결 방식    :", recommended_ssd.interface)
+    usage_type = get_usage_type()
 
-##GPU 추천 기능
-gpu_budget = get_budget_input("\nGPU 예산을 입력하세요 : ")
-recommended_gpu = recommend_performance_part(gpu_list, gpu_budget)
-
-if recommended_gpu is None:
-    print("예산 내에서 추천할 수 있는 GPU가 없습니다.")
-else:
-    print("\n========추천 GPU========")
-    print("제품명               :", recommended_gpu.name)
-    print("가격                 :", recommended_gpu.price)
-    print("성능 점수            :", recommended_gpu.performance_score)
-    print("가격 대비 성능 점수  :", round(recommended_gpu.value_score))
-
-##PSU 추천 기능
-if recommended_cpu is not None and recommended_gpu is not None:
-    psu_budget = get_budget_input("\n파워서플라이 예산을 입력하세요 : ")
-
-    base_power = (
-        recommended_cpu.power
-        + recommended_gpu.power
-        + 100  #기타 부품 예상 용량 (테스트)
+    budget_allocation = allocate_budget(
+        total_budget,
+        usage_type
     )
 
-    required_wattage = int(base_power * 1.3)  #여유 용량 30% (테스트)
+    recommendation_strategy = "performance"
 
-    print("\n예상 최소 파워 용량 :", required_wattage, "W")
+    print_budget_allocation(
+        budget_allocation
+    )
 
-    available_psus = []
+else:
+    budget_allocation = get_custom_budget()
 
-    for psu in psu_list:
-        if (
-            psu.wattage >= required_wattage
-            and psu.price <= psu_budget
-        ):
-            available_psus.append(psu)
+    recommendation_strategy = "value"
 
-    if len(available_psus) == 0:
-        recommended_psu = None
-        print("필요한 출력과 예산을 만족하는 파워서플라이가 없습니다.")
+##부품 추천 기능
+recommender.create_build(
+    budget_allocation,
+    recommendation_strategy
+)
 
-    else:
-        recommended_psu = min(
-            available_psus,
-            key=lambda psu: (
-                psu.wattage,
-                psu.price
-            )
-        )
+recommended_cpu = recommender.recommended_cpu
+recommended_gpu = recommender.recommended_gpu
+recommended_motherboard = (
+    recommender.recommended_motherboard
+)
+recommended_ram = recommender.recommended_ram
+recommended_ssd = recommender.recommended_ssd
+recommended_psu = recommender.recommended_psu
+recommended_case = recommender.recommended_case
 
-        print("\n========추천 파워서플라이========")
-        print("제품명       :", recommended_psu.name)
-        print("가격         :", recommended_psu.price, "원")
-        print("정격 출력    :", recommended_psu.wattage, "W")
-        print("효율 등급    :", recommended_psu.efficiency)
+##추천된 부품들 검사
+if recommender.is_complete_build():
+    total_price = (
+        recommender.calculate_total_price()
+    )
 
-##케이스 추천 기능
-if recommended_motherboard is not None and recommended_gpu is not None:
-    case_budget = get_budget_input("\n케이스 예산을 입력하세요 : ")
+    print_final_build(
+        recommended_cpu,
+        recommended_gpu,
+        recommended_motherboard,
+        recommended_ram,
+        recommended_ssd,
+        recommended_psu,
+        recommended_case,
+        total_price
+    )
 
-    compatible_cases = []
+else:
+    print("\n완성된 PC 견적을 만들 수 없습니다.")
 
-    for pc_case in case_list:
-        if (
-            pc_case.motherboard_size == recommended_motherboard.size
-            and pc_case.max_gpu_length >= recommended_gpu.length
-            and pc_case.price <= case_budget
-        ):
-            compatible_cases.append(pc_case)
+    print_missing_parts(
+        recommended_cpu,
+        recommended_gpu,
+        recommended_motherboard,
+        recommended_ram,
+        recommended_ssd,
+        recommended_psu,
+        recommended_case
+    )
 
-    if len(compatible_cases) == 0:
-        recommended_case = None
-        print("추천 부품과 호환되는 케이스가 예산 내에 없습니다.")
-
-    else:
-        recommended_case = min(
-            compatible_cases,
-            key=lambda pc_case: pc_case.price
-        )
-
-        print("\n========추천 케이스========")
-        print("제품명             :", recommended_case.name)
-        print("가격               :", recommended_case.price, "원")
-        print("메인보드 지원 규격 :", recommended_case.motherboard_size)
-        print("최대 GPU 길이      :", recommended_case.max_gpu_length, "mm")
+    print("\n각 부품의 예산이나 호환 조건을 확인해주세요.")
