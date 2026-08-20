@@ -192,42 +192,52 @@ def print_missing_parts(
 
 def print_budget_allocation(budget_allocation):
     print("\n========== 자동 배정 예산 ==========")
-    print(
-        "CPU          :",
-        format(budget_allocation["cpu"], ","),
-        "원"
-    )
-    print(
-        "GPU          :",
-        format(budget_allocation["gpu"], ","),
-        "원"
-    )
-    print(
-        "Motherboard  :",
-        format(budget_allocation["motherboard"], ","),
-        "원"
-    )
-    print(
-        "RAM          :",
-        format(budget_allocation["ram"], ","),
-        "원"
-    )
-    print(
-        "SSD          :",
-        format(budget_allocation["ssd"], ","),
-        "원"
-    )
-    print(
-        "PSU          :",
-        format(budget_allocation["psu"], ","),
-        "원"
-    )
-    print(
-        "Case         :",
-        format(budget_allocation["case"], ","),
-        "원"
-    )
+    print("CPU          :", format(budget_allocation["cpu"], ","), "원")
+    print("GPU          :", format(budget_allocation["gpu"], ","), "원")
+    print("Motherboard  :", format(budget_allocation["motherboard"], ","), "원")
+    print("RAM          :", format(budget_allocation["ram"], ","), "원")
+    print("SSD          :", format(budget_allocation["ssd"], ","), "원")
+    print("PSU          :", format(budget_allocation["psu"], ","), "원")
+    print("Case         :", format(budget_allocation["case"], ","), "원")
     print("====================================")
+
+def print_upgrade_history(upgrade_history):
+    print("\n========== 자동 업그레이드 과정 ==========")
+
+    if len(upgrade_history) == 0:
+        print("적용 가능한 추가 업그레이드가 없습니다.")
+        print("========================================")
+        return
+
+    for index, upgrade in enumerate(upgrade_history, start=1):
+        print(
+            index,
+            ".",
+            upgrade["type"].upper(),
+            ":",
+            upgrade["old_part"],
+            "→",
+            upgrade["new_part"]
+        )
+
+        print(
+            "   추가 비용 :",
+            format(upgrade["cost"], ","),
+            "원"
+        )
+
+        print(
+            "   업그레이드 점수 :",
+            round(upgrade["score"], 4)
+        )
+
+        print(
+            "   남은 예산 :",
+            format(upgrade["remaining_after"], ","),
+            "원"
+        )
+
+    print("========================================")
 
 ##함수로 csv파일 불러오기
 cpu_list = load_cpu_data()
@@ -253,9 +263,7 @@ recommender = PCBuildRecommender(
 budget_mode = get_budget_mode()
 
 if budget_mode == "1":
-    total_budget = get_budget_input(
-        "전체 PC 예산을 입력하세요 : "
-    )
+    total_budget = get_budget_input("전체 PC 예산을 입력하세요 : ")
 
     usage_type = get_usage_type()
 
@@ -266,8 +274,13 @@ if budget_mode == "1":
 
     recommendation_strategy = "performance"
 
-    print_budget_allocation(
-        budget_allocation
+    print_budget_allocation(budget_allocation)
+
+    recommender.create_build(
+        budget_allocation,
+        recommendation_strategy,
+        total_budget,
+        usage_type
     )
 
 else:
@@ -275,17 +288,18 @@ else:
 
     recommendation_strategy = "value"
 
-##부품 추천 기능
-recommender.create_build(
-    budget_allocation,
-    recommendation_strategy
-)
+    recommender.create_build(
+        budget_allocation,
+        recommendation_strategy
+    )
 
+##남은 예산 계산 + 업그레이드
+recommender.upgrade_build()
+
+##추천 결과 가져오기
 recommended_cpu = recommender.recommended_cpu
 recommended_gpu = recommender.recommended_gpu
-recommended_motherboard = (
-    recommender.recommended_motherboard
-)
+recommended_motherboard = (recommender.recommended_motherboard)
 recommended_ram = recommender.recommended_ram
 recommended_ssd = recommender.recommended_ssd
 recommended_psu = recommender.recommended_psu
@@ -293,9 +307,12 @@ recommended_case = recommender.recommended_case
 
 ##추천된 부품들 검사
 if recommender.is_complete_build():
-    total_price = (
-        recommender.calculate_total_price()
-    )
+    total_price = recommender.calculate_total_price()
+
+    if budget_mode == "1":
+        print_upgrade_history(
+            recommender.upgrade_history
+        )
 
     print_final_build(
         recommended_cpu,
@@ -307,6 +324,13 @@ if recommender.is_complete_build():
         recommended_case,
         total_price
     )
+
+    if budget_mode == "1":
+        print(
+            "남은 예산      :",
+            format(recommender.remaining_budget, ","),
+            "원"
+        )
 
 else:
     print("\n완성된 PC 견적을 만들 수 없습니다.")
